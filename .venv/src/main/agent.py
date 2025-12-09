@@ -6,34 +6,32 @@ import os
 NAMESPACE = "kubeyug"
 
 def get_node_name():
-    # For now, just read from env; later this will be set via Downward API in the Pod
     return os.environ.get("KUBEYUG_NODE_NAME")
 
 def get_cluster_capabilities():
-    # Use local kubeconfig for now
-    config.load_kube_config()  # later: config.load_incluster_config() [web:216][web:228]
+    config.load_kube_config()
 
     v1 = client.CoreV1Api()
     nodes = v1.list_node().items
 
-    caps = []
+    caps_by_node = {}
     for node in nodes:
         info = node.status.node_info
         meta = node.metadata
 
-        caps.append({
+        caps_by_node[meta.name] = {
             "nodeName": meta.name,
-            "arch": node.metadata.labels.get("kubernetes.io/arch"),
-            "os": node.metadata.labels.get("kubernetes.io/os"),
+            "arch": meta.labels.get("kubernetes.io/arch"),
+            "os": meta.labels.get("kubernetes.io/os"),
             "kernel": info.kernel_version,
             "kubeletVersion": info.kubelet_version,
             "capacity": {
                 "cpu": node.status.capacity.get("cpu"),
                 "memory": node.status.capacity.get("memory"),
             },
-        })
+        }
 
-    return caps
+    return caps_by_node
 
 def ensure_namespace():
     config.load_kube_config()
