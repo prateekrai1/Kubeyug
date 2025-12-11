@@ -1,31 +1,22 @@
 from kubernetes import client, config
+import argparse
 import json
-import sys
+import os
 import subprocess
 
 NAMESPACE = "kubeyug"
 
-TOOL_REGISTRY = {
-    "monitoring": [
-        {
-            "key": "prometheus",
-            "name": "Prometheus",
-            "helm_repo_name": "prometheus-community",
-            "helm_repo_url": "https://prometheus-community.github.io/helm-charts",
-            "helm_chart": "prometheus-community/prometheus",
-            "namespace": "monitoring",
-        },
-        {
-            "key": "opentelemetry",
-            "name": "OpenTelemetry Collector",
-            "helm_repo_name": "open-telemetry",
-            "helm_repo_url": "https://open-telemetry.github.io/opentelemetry-helm-charts",
-            "helm_chart": "open-telemetry/opentelemetry-collector",
-            "namespace": "observability",
-        },
-    ]
-}
+HERE = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(HERE, "data")
+TOOL_REGISTRY_PATH = os.path.join(DATA_DIR, "tool_registry.json")
 
+
+def load_tool_registry() -> dict:
+    with open(TOOL_REGISTRY_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+TOOL_REGISTRY = load_tool_registry()
 
 
 def load_cluster_capabilities():
@@ -38,48 +29,11 @@ def load_cluster_capabilities():
 
     caps = []
     for cm in cms:
-        data = cm.data.get("capabilities.json")
+        data = (cm.data or {}).get("capabilities.json")
         if not data:
             continue
         caps.append(json.loads(data))
     return caps
-
-def find_tool_by_key(category: str, key: str) -> dict | None:
-    for t in TOOL_REGISTRY.get(category, []):
-        if t["key"] == key:
-            return t
-    return None
-
-def install_monitoring():
-    caps = load_cluster_capabilities()
-    summary = summarize_cluster(caps)
-    tools = TOOL_REGISTRY["monitoring"]
-    decision = decide_monitoring_stack(summary, tools)
-
-    tool_key = decision["chartKey"]
-    tool = find_tool_by_key("monitoring", tool_key)
-    if not tool:
-        print(f"No tool found for key '{tool_key}'")
-        return
-
-    ns = tool["namespace"]
-    repo_name = tool["helm_repo_name"]
-    repo_url = tool["helm_repo_url"]
-    chart = tool["helm_chart"]
-
-    print("Cluster summary:", summary)
-    print("Decision:", decision)
-    print(f"\nInstalling {tool['name']} into namespace '{ns}' via Helm...\n")
-
-    cmds = [
-        ["helm", "repo", "add", repo_name, repo_url],
-        ["helm", "repo", "update"],
-        ["helm", "install", tool_key, chart, "-n", ns, "--create-namespace"],
-    ]
-
-    for cmd in cmds:
-        print(">", " ".join(cmd))
-        subprocess.run(cmd, check=True)
 
 
 def summarize_cluster(caps):
@@ -87,44 +41,140 @@ def summarize_cluster(caps):
     arches = sorted({c["arch"] for c in caps})
     oses = sorted({c["os"] for c in caps})
     total_cpu = sum(int(c["capacity"]["cpu"]) for c in caps)
-    return {
-        "nodes": nodes,
-        "arches": arches,
-        "oses": oses,
-        "totalCpu": total_cpu
-    }
+    return {"nodes": nodes, "arches": arches, "oses": oses, "totalCpu": total_cpu}
+
+
+def find_tool(key: str) -> tuple[str, dict] | None:
+    """Search all categories and return (category, tool)."""
+    for category, tools in TOOL_REGISTRY.items():
+        for t in tools:
+            if t.get("key") == key:
+                return category, t
+    return None
+
 
 def decide_monitoring_stack(cluster_summary: dict, tools: list[dict]) -> dict:
+    # Need to replace with Oumi call. 
     return {
         "tool": "prometheus",
         "reason": "Single-node or small cluster; Prometheus alone is enough for basic monitoring.",
-        "chartKey": "prometheus"
+        "chartKey": "prometheus",
     }
 
-def run_decision():
+
+def run_cmd(cmd: list[str], dry_run: bool = False, capture: bool = False):
+    print(">", " ".join(cmd))
+    if dry_run:
+        return None
+    return subprocess.run(
+        cmd,
+        check=True,
+        text=True,
+        capture_output=capture,
+    )
+
+
+def helm_apply_release(
+    release: str,
+    chart: str,
+    namespace: str,
+    repo_name: str,
+    repo_url: str,
+    dry_run: bool = False,
+):
+    run_cmd(["helm", "repo", "add", repo_name, repo_url], dry_run=dry_run)
+    run_cmd(["helm", "repo", "update"], dry_run=dry_run)
+    run_cmd(
+        [
+            "helm",
+            "upgrade",
+            "--install",
+            release,
+            chart,
+            "-n",
+            namespace,
+            "--create-namespace",
+        ],
+        dry_run=dry_run,
+    )
+
+
+def install_key_as_helm(key: str, namespace_override: str | None = None, dry_run: bool = False):
+    found = find_tool(key)
+    if not found:
+        raise SystemExit(f"Unknown tool key: {key}")
+
+    _, tool = found
+    ns = namespace_override or tool["namespace"]
+
+    print(f"Installing/updating {tool['name']} (key={key}) in namespace '{ns}' via Helm...\n")
+
+    helm_apply_release(
+        release=key,
+        chart=tool["helm_chart"],
+        namespace=ns,
+        repo_name=tool["helm_repo_name"],
+        repo_url=tool["helm_repo_url"],
+        dry_run=dry_run,
+    )
+
+
+def install_monitoring_smart(namespace_override: str | None = None, dry_run: bool = False):
     caps = load_cluster_capabilities()
     summary = summarize_cluster(caps)
-    tools = TOOL_REGISTRY["monitoring"]
+
+    tools = TOOL_REGISTRY.get("monitoring", [])
+    if not tools:
+        raise SystemExit("No 'monitoring' category found in tool_registry.json")
+
     decision = decide_monitoring_stack(summary, tools)
+    tool_key = decision["chartKey"]
 
-    print("Decision:")
-    print(json.dumps({
-        "cluster": summary,
-        "decision": decision
-    }, indent=2))
+    print("Cluster summary:", summary)
+    print("Decision:", decision, "\n")
 
-if __name__ == "__main__":
-    if len(sys.argv) >= 2:
-        cmd = sys.argv[1]
+    install_key_as_helm(tool_key, namespace_override=namespace_override, dry_run=dry_run)
 
-        if cmd == "monitoring":
-            run_decision()
-        elif cmd == "install-monitoring":
-            install_monitoring()
+
+def main():
+    parser = argparse.ArgumentParser(prog="kubeyug")
+    sub = parser.add_subparsers(dest="command")
+
+    p_mon = sub.add_parser("monitoring", help="Suggest monitoring stack")
+    p_mon.add_argument("--json", action="store_true", help="Print machine-readable JSON")
+
+    p_install = sub.add_parser("install", help="Install a tool or stack")
+    p_install.add_argument("target", help="e.g. 'monitoring' or a tool key like 'prometheus'")
+    p_install.add_argument("--helm", action="store_true", help="Force Helm install for the target key")
+    p_install.add_argument("--namespace", help="Override target namespace")
+    p_install.add_argument("--dry-run", action="store_true", help="Print commands without executing")
+
+    args = parser.parse_args()
+
+    if args.command == "monitoring":
+        caps = load_cluster_capabilities()
+        summary = summarize_cluster(caps)
+        tools = TOOL_REGISTRY.get("monitoring", [])
+        decision = decide_monitoring_stack(summary, tools)
+        out = {"cluster": summary, "decision": decision}
+        if args.json:
+            print(json.dumps(out, indent=2))
         else:
-            print(f"Unknown command: {cmd}")
-    else:
-        print(json.dumps(load_cluster_capabilities(), indent=2))
+            print("Decision:")
+            print(json.dumps(out, indent=2))
+        return
+
+    if args.command == "install":
+        if args.target == "monitoring" and not args.helm:
+            install_monitoring_smart(namespace_override=args.namespace, dry_run=args.dry_run)
+            return
+
+        install_key_as_helm(args.target, namespace_override=args.namespace, dry_run=args.dry_run)
+        return
 
     caps = load_cluster_capabilities()
     print(json.dumps(caps, indent=2))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,94 @@
+{
+    "networking": [
+        {
+            "key": "cilium",
+            "name": "Cilium",
+            "helm_repo_name": "cilium",
+            "helm_repo_url": "https://helm.cilium.io/",
+            "helm_chart": "cilium/cilium",
+            "namespace": "kube-system"
+        },
+        {
+            "key": "istio",
+            "name": "Istio",
+            "helm_repo_name": "istio",
+            "helm_repo_url": "https://istio-release.storage.googleapis.com/charts",
+            "helm_chart": "istio/istiod",
+            "namespace": "istio-system"
+        },
+        {
+            "key": "envoy",
+            "name": "Envoy",
+            "helm_repo_name": "bitnami",
+            "helm_repo_url": "https://charts.bitnami.com/bitnami",
+            "helm_chart": "bitnami/envoy",
+            "namespace": "envoy-system"
+        }
+    ],
+    "monitoring": [
+        {
+            "key": "prometheus",
+            "name": "Prometheus",
+            "helm_repo_name": "prometheus-community",
+            "helm_repo_url": "https://prometheus-community.github.io/helm-charts",
+            "helm_chart": "prometheus-community/prometheus",
+            "namespace": "monitoring"
+        },
+        {
+            "key": "jaeger",
+            "name": "Jaeger",
+            "helm_repo_name": "jaegertracing",
+            "helm_repo_url": "https://jaegertracing.github.io/helm-charts",
+            "helm_chart": "jaegertracing/jaeger",
+            "namespace": "observability"
+        },
+        {
+            "key": "opencost",
+            "name": "OpenCost",
+            "helm_repo_name": "opencost",
+            "helm_repo_url": "https://opencost.github.io/opencost-helm-chart",
+            "helm_chart": "opencost/opencost",
+            "namespace": "opencost"
+        }
+    ],
+    "gitops": [
+        {
+            "key": "argo",
+            "name": "Argo CD",
+            "helm_repo_name": "argo",
+            "helm_repo_url": "https://argoproj.github.io/argo-helm",
+            "helm_chart": "argo/argo-cd",
+            "namespace": "argocd"
+        }
+    ],
+    "databases": [
+        {
+            "key": "vitess",
+            "name": "Vitess",
+            "helm_repo_name": "vitess",
+            "helm_repo_url": "https://vitess-operator.github.io/vitess-operator/charts",
+            "helm_chart": "vitess/vitess-operator",
+            "namespace": "vitess"
+        }
+    ],
+    "security": [
+        {
+            "key": "kyverno",
+            "name": "Kyverno",
+            "helm_repo_name": "kyverno",
+            "helm_repo_url": "https://kyverno.github.io/kyverno/",
+            "helm_chart": "kyverno/kyverno",
+            "namespace": "kyverno"
+        }
+    ],
+    "logging": [
+        {
+            "key": "fluentd",
+            "name": "Fluentd",
+            "helm_repo_name": "fluent",
+            "helm_repo_url": "https://fluent.github.io/helm-charts",
+            "helm_chart": "fluent/fluentd",
+            "namespace": "logging"
+        }
+    ]
+}
