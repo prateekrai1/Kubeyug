@@ -1,0 +1,106 @@
+{
+  "key": "istio",
+  "name": "Istio",
+  "category": "networking",
+  "description": "Service mesh control-plane (istiod) plus optional gateways. Multi-step install.",
+  "defaults": {
+    "installer": "helm",
+    "variant": "default",
+    "install_gateway": false,
+    "gateway_service_type": "LoadBalancer",
+    "namespace_control_plane": "istio-system",
+    "namespace_gateway": "istio-ingress"
+  },
+  "installers": {
+    "helm": {
+      "repo": {
+        "name": "istio",
+        "url": "https://istio-release.storage.googleapis.com/charts"
+      },
+      "steps": [
+        {
+          "id": "base",
+          "type": "helm",
+          "release": "istio-base",
+          "chart": "istio/base",
+          "namespace": "istio-system",
+          "create_namespace": true,
+          "wait": false,
+          "set": {
+            "defaultRevision": "default"
+          }
+        },
+        {
+          "id": "istiod",
+          "type": "helm",
+          "release": "istiod",
+          "chart": "istio/istiod",
+          "namespace": "istio-system",
+          "create_namespace": true,
+          "wait": true,
+          "set": {
+            "profile": "default"
+          }
+        }
+      ],
+      "optional_steps": [
+        {
+          "id": "gateway",
+          "enabled_if": "defaults.install_gateway == true",
+          "type": "helm",
+          "release": "istio-ingress",
+          "chart": "istio/gateway",
+          "namespace": "istio-ingress",
+          "create_namespace": true,
+          "wait": true,
+          "set": {
+            "service.type": "LoadBalancer"
+          }
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "istiod_deploy",
+          "type": "kubectl",
+          "cmd": ["kubectl", "get", "deploy", "istiod", "-n", "istio-system"]
+        }
+      ]
+    },
+    "istioctl": {
+      "steps": [
+        {
+          "id": "install",
+          "type": "exec",
+          "cmd": ["istioctl", "install", "--skip-confirmation"]
+        }
+      ],
+      "variants": {
+        "default": {
+          "steps": [
+            {
+              "id": "install_default",
+              "type": "exec",
+              "cmd": ["istioctl", "install", "--set", "profile=default", "--skip-confirmation"]
+            }
+          ]
+        },
+        "demo": {
+          "steps": [
+            {
+              "id": "install_demo",
+              "type": "exec",
+              "cmd": ["istioctl", "install", "--set", "profile=demo", "--skip-confirmation"]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "notes": [
+    "Helm install requires ordering: base (CRDs) then istiod; gateway is optional."
+  ],
+  "edge_cases": [
+    "If you enable the gateway and it uses a LoadBalancer service on a local cluster, --wait may hang until an external IP is assigned.",
+    "Istioctl must be installed on the machine running kubeyug if you choose installer=istioctl."
+  ]
+}

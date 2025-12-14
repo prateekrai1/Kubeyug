@@ -1,0 +1,22 @@
+{
+  "key": "istio",
+  "defaults": {
+    "install_gateway": true,
+    "gateway_service_type": "LoadBalancer"
+  },
+  "notes": [
+    "EKS: gateway defaults to Service type LoadBalancer; ensure AWS Load Balancer provisioning is allowed in your cluster/account."
+  ],
+  "installers": {
+    "helm": {
+      "optional_steps": [
+        {
+          "id": "gateway",
+          "set": {
+            "service.type": "LoadBalancer"
+          }
+        }
+      ]
+    }
+  }
+}

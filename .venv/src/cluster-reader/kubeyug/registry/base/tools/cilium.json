@@ -1,0 +1,78 @@
+{
+  "key": "cilium",
+  "name": "Cilium",
+  "category": "networking",
+  "description": "eBPF-based CNI / networking, security, and observability.",
+  "defaults": {
+    "installer": "helm",
+    "variant": "default",
+    "namespace": "kube-system",
+    "release": "cilium",
+    "wait": true,
+
+    "enable_hubble": false,
+    "enable_gateway_api": false,
+
+    "kube_proxy_replacement": "disabled"
+  },
+  "installers": {
+    "helm": {
+      "repo": {
+        "name": "cilium",
+        "url": "https://helm.cilium.io/"
+      },
+      "steps": [
+        {
+          "id": "cilium",
+          "type": "helm",
+          "release": "cilium",
+          "chart": "cilium/cilium",
+          "namespace": "kube-system",
+          "create_namespace": false,
+          "wait": true,
+          "set": {
+            "kubeProxyReplacement": "disabled",
+            "hubble.enabled": false,
+            "gatewayAPI.enabled": false
+          }
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "ds_ready",
+          "type": "kubectl",
+          "cmd": ["kubectl", "rollout", "status", "ds/cilium", "-n", "kube-system", "--timeout=5m"]
+        },
+        {
+          "id": "pods",
+          "type": "kubectl",
+          "cmd": ["kubectl", "get", "pods", "-n", "kube-system", "-l", "k8s-app=cilium"]
+        }
+      ]
+    },
+    "cilium_cli": {
+      "steps": [
+        {
+          "id": "install_default",
+          "type": "exec",
+          "cmd": ["cilium", "install"]
+        }
+      ],
+      "variants": {
+        "default": {
+          "steps": [
+            { "id": "install_default", "type": "exec", "cmd": ["cilium", "install"] }
+          ]
+        }
+      }
+    }
+  },
+  "notes": [
+    "Cilium is cluster networking (CNI). Treat install/upgrade carefully because misconfiguration can affect connectivity.",
+    "Helm repo: https://helm.cilium.io/."
+  ],
+  "edge_cases": [
+    "Switching CNIs on an existing cluster can be disruptive; kubeyug should warn if another CNI appears installed.",
+    "kubeProxyReplacement is intentionally disabled by default for safety; enable via profile/flags once validated."
+  ]
+}

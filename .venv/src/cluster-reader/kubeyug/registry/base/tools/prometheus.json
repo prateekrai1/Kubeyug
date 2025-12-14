@@ -1,0 +1,53 @@
+{
+  "key": "prometheus",
+  "name": "Prometheus",
+  "category": "monitoring",
+  "description": "Prometheus server + Alertmanager + exporters (helm chart).",
+  "defaults": {
+    "installer": "helm",
+    "variant": "default",
+    "namespace": "monitoring",
+    "release": "prometheus",
+    "wait": true,
+
+    "persistence": false,
+    "server_statefulset": false,
+    "retention": "15d"
+  },
+  "installers": {
+    "helm": {
+      "repo": {
+        "name": "prometheus-community",
+        "url": "https://prometheus-community.github.io/helm-charts"
+      },
+      "steps": [
+        {
+          "id": "prometheus",
+          "type": "helm",
+          "release": "prometheus",
+          "chart": "prometheus-community/prometheus",
+          "namespace": "monitoring",
+          "create_namespace": true,
+          "wait": true,
+          "set": {
+            "server.retention": "15d"
+          }
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "server_deploy",
+          "type": "kubectl",
+          "cmd": ["kubectl", "get", "pods", "-n", "monitoring", "-l", "app=prometheus"]
+        }
+      ]
+    }
+  },
+  "notes": [
+    "Prometheus sizing and persistence depend on cluster size and retention requirements."
+  ],
+  "edge_cases": [
+    "Enabling persistence may require a working StorageClass; otherwise PVCs can remain Pending.",
+    "Some charts require enabling server.statefulSet when using server.persistentVolume (varies by chart/version)."
+  ]
+}

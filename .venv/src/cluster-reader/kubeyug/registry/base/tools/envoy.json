@@ -1,0 +1,61 @@
+{
+  "key": "envoy",
+  "name": "Envoy",
+  "category": "networking",
+  "description": "Envoy proxy deployment (requires an Envoy config to be useful).",
+  "defaults": {
+    "installer": "helm",
+    "variant": "default",
+    "namespace": "envoy-system",
+    "release": "envoy",
+    "wait": true,
+
+    "service_type": "ClusterIP",
+    "ports": {
+      "http": 8080
+    },
+
+    "config_source": "configmap",
+    "config_required": true
+  },
+  "installers": {
+    "helm": {
+      "repo": {
+        "name": "bitnami",
+        "url": "https://charts.bitnami.com/bitnami"
+      },
+      "steps": [
+        {
+          "id": "envoy",
+          "type": "helm",
+          "release": "envoy",
+          "chart": "bitnami/envoy",
+          "namespace": "envoy-system",
+          "create_namespace": true,
+          "wait": true,
+          "set": {
+            "service.type": "ClusterIP"
+          }
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "pods",
+          "type": "kubectl",
+          "cmd": ["kubectl", "get", "pods", "-n", "envoy-system"]
+        },
+        {
+          "id": "svc",
+          "type": "kubectl",
+          "cmd": ["kubectl", "get", "svc", "-n", "envoy-system"]
+        }
+      ]
+    }
+  },
+  "notes": [
+    "Installing Envoy alone does not configure routing; you typically need to mount an envoy.yaml via ConfigMap or use a higher-level project (e.g., Envoy Gateway / Contour) depending on your use case."
+  ],
+  "edge_cases": [
+    "If config_required is true, kubeyug should prompt/require a config source (e.g., create a ConfigMap before install or as an extra step)."
+  ]
+}

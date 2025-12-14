@@ -1,0 +1,23 @@
+{
+  "key": "istio",
+  "defaults": {
+    "install_gateway": true,
+    "gateway_service_type": "NodePort"
+  },
+  "notes": [
+    "Minikube: prefer NodePort for the ingress gateway to avoid pending LoadBalancer IPs.",
+    "Minikube: ensure you allocate sufficient CPU/RAM before installing Istio."
+  ],
+  "installers": {
+    "helm": {
+      "optional_steps": [
+        {
+          "id": "gateway",
+          "set": {
+            "service.type": "NodePort"
+          }
+        }
+      ]
+    }
+  }
+}

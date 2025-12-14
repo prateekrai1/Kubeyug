@@ -1,0 +1,25 @@
+{
+  "key": "prometheus",
+  "defaults": {
+    "persistence": false,
+    "server_statefulset": false,
+    "retention": "2d"
+  },
+  "notes": [
+    "Minikube: keep retention low and persistence off by default to reduce resource usage.",
+    "Minikube: avoid strict resource limits unless you know your minikube capacity."
+  ],
+  "installers": {
+    "helm": {
+      "steps": [
+        {
+          "id": "prometheus",
+          "set": {
+            "server.retention": "2d",
+            "server.persistentVolume.enabled": false
+          }
+        }
+      ]
+    }
+  }
+}

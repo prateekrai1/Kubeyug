@@ -1,0 +1,56 @@
+{
+  "key": "keda",
+  "name": "KEDA",
+  "category": "autoscaling",
+  "description": "Kubernetes Event-driven Autoscaler (ScaledObjects, TriggerAuthentication, etc.).",
+  "defaults": {
+    "installer": "helm",
+    "variant": "default",
+    "namespace": "keda",
+    "release": "keda",
+    "wait": true,
+
+    "install_crds": "chart",
+    "metrics_server": "keda-metrics-apiserver"
+  },
+  "installers": {
+    "helm": {
+      "repo": {
+        "name": "kedacore",
+        "url": "https://kedacore.github.io/charts"
+      },
+      "steps": [
+        {
+          "id": "keda",
+          "type": "helm",
+          "release": "keda",
+          "chart": "kedacore/keda",
+          "namespace": "keda",
+          "create_namespace": true,
+          "wait": true,
+          "set": {}
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "pods",
+          "type": "kubectl",
+          "cmd": ["kubectl", "get", "pods", "-n", "keda"]
+        },
+        {
+          "id": "crds",
+          "type": "kubectl",
+          "cmd": ["kubectl", "get", "crd", "|", "grep", "-i", "keda"]
+        }
+      ]
+    }
+  },
+  "notes": [
+    "KEDA can be installed via Helm into the keda namespace.",
+    "KEDA supports installing CRDs via the Helm chart, and also provides a separate CRD YAML in releases for some workflows."
+  ],
+  "edge_cases": [
+    "CRD upgrades can be tricky if KEDA was installed a long time ago; document/handle CRD conflicts as a known issue during upgrades.",
+    "KEDA installs a metrics API server; ensure aggregated API services are healthy if troubleshooting."
+  ]
+}

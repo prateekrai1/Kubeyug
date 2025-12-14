@@ -1,0 +1,27 @@
+{
+  "key": "prometheus",
+  "defaults": {
+    "persistence": true,
+    "server_statefulset": true,
+    "retention": "15d"
+  },
+  "notes": [
+    "EKS: persistence enabled by default; ensure a suitable StorageClass exists (for example gp2/gp3 depending on your cluster)."
+  ],
+  "installers": {
+    "helm": {
+      "steps": [
+        {
+          "id": "prometheus",
+          "set": {
+            "server.retention": "15d",
+            "server.persistentVolume.enabled": true,
+            "server.persistentVolume.size": "20Gi",
+            "server.persistentVolume.storageClass": "gp3",
+            "server.statefulSet.enabled": true
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "key": "envoy",
+  "defaults": {
+    "service_type": "LoadBalancer"
+  },
+  "notes": [
+    "EKS: default to LoadBalancer for easy access; ensure your cluster can provision an external load balancer."
+  ],
+  "installers": {
+    "helm": {
+      "steps": [
+        {
+          "id": "envoy",
+          "set": {
+            "service.type": "LoadBalancer"
+          }
+        }
+      ]
+    }
+  }
+}

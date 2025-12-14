@@ -1,0 +1,21 @@
+{
+  "key": "envoy",
+  "defaults": {
+    "service_type": "NodePort"
+  },
+  "notes": [
+    "Minikube: prefer NodePort to avoid pending LoadBalancer services."
+  ],
+  "installers": {
+    "helm": {
+      "steps": [
+        {
+          "id": "envoy",
+          "set": {
+            "service.type": "NodePort"
+          }
+        }
+      ]
+    }
+  }
+}

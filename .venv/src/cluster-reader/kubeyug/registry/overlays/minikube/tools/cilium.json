@@ -1,0 +1,26 @@
+{
+  "key": "cilium",
+  "defaults": {
+    "wait": true,
+    "enable_hubble": false,
+    "kube_proxy_replacement": "disabled"
+  },
+  "notes": [
+    "Minikube: keep kubeProxyReplacement disabled for MVP unless you explicitly test it.",
+    "Minikube: good target for basic Cilium testing."
+  ],
+  "installers": {
+    "helm": {
+      "steps": [
+        {
+          "id": "cilium",
+          "set": {
+            "kubeProxyReplacement": "disabled",
+            "hubble.enabled": false,
+            "gatewayAPI.enabled": false
+          }
+        }
+      ]
+    }
+  }
+}

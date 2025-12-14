@@ -1,0 +1,27 @@
+{
+  "key": "cilium",
+  "defaults": {
+    "wait": true,
+    "kube_proxy_replacement": "disabled"
+  },
+  "notes": [
+    "EKS: some install modes require setting k8sServiceHost/k8sServicePort to the EKS API endpoint (common in BYOCNI/overlay style installs).",
+    "EKS: consider a dedicated variant for ENI mode vs overlay/BYOCNI later; start with safe defaults first."
+  ],
+  "installers": {
+    "helm": {
+      "steps": [
+        {
+          "id": "cilium",
+          "set": {
+            "kubeProxyReplacement": "disabled",
+            "hubble.enabled": false,
+            "gatewayAPI.enabled": false,
+            "k8sServiceHost": "{{eks.apiServerHost}}",
+            "k8sServicePort": 443
+          }
+        }
+      ]
+    }
+  }
+}
