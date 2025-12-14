@@ -16,7 +16,7 @@ Kubeyug centralizes this in a registry and exposes consistent lifecycle commands
 
 ## Installation (from Git)
 
-> python -m pip install "kubeyug @ git+https://github.com/prateekrai1/Kubeyug.git"
+```python -m pip install "kubeyug @ git+https://github.com/prateekrai1/Kubeyug.git" ```
 
 ### Verify:
 ```kubeyug --version```
